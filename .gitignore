@@ -143,3 +143,4 @@ __pycache__
 
 dist/
 *.egg-info
+ast_check.py
