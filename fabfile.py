@@ -71,10 +71,12 @@ def build():
 @task
 def upload_to_dev():
     """Upload package to dev pypy."""
+    build()
     local(f'python3 -m twine upload --repository-url {test_pypy}/legacy/ dist/*')
 
 
 @task
 def upload_to_prod():
     """Upload package to real pypy."""
+    build()
     local('python3 -m twine upload dist/*')
