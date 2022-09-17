@@ -1,5 +1,10 @@
+[![pypi](https://img.shields.io/pypi/v/flake8-hangover.svg)](https://pypi.org/project/flake8-hangover/)
+[![pypi](https://img.shields.io/pypi/pyversions/flake8-hangover.svg)](https://pypi.org/project/flake8-hangover/)
+[![pypi](https://img.shields.io/pypi/l/flake8-hangover.svg)](https://raw.githubusercontent.com/deniskrumko/flake8-hangover/master/LICENSE)
+
 # flake8-hangover
 Flake8 plugin to prevent specific hanging indentations (and more).
+
 
 # Installation
 
