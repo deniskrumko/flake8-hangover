@@ -16,6 +16,7 @@ class Messages:
     FHG001 = 'FHG001 Function argument has hanging indentation'
     FHG002 = 'FHG002 Function call positional argument has hanging indentation'
     FHG003 = 'FHG003 Function call keyword argument has hanging indentation'
+    FHG004 = 'FHG004 First function argument must be on new line'
 
 
 class Visitor(ast.NodeVisitor):
@@ -76,11 +77,25 @@ class Visitor(ast.NodeVisitor):
     def _check_func_args_indentations(self, node: Any) -> None:
         """Check indentations in function args/kwargs."""
         cur_lineno = node.lineno
-        for arg in node.args.args:
+        first_argument = None
+        multiline_arguments = False
+
+        for i, arg in enumerate(node.args.args):
+            if i == 0:
+                first_argument = (arg.lineno, arg.col_offset)
+
             if arg.lineno != cur_lineno:
                 if arg.col_offset != node.col_offset + 4:
                     self.errors.append((arg.lineno, arg.col_offset, Messages.FHG001))
                 cur_lineno = arg.lineno
+                multiline_arguments = True
+
+        if (
+            multiline_arguments
+            and first_argument
+            and first_argument[0] == node.lineno
+        ):
+            self.errors.append(first_argument + (Messages.FHG004,))
 
     def _get_func_name_offset(self, node: Any) -> int:
         """Get function name offset."""

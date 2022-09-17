@@ -11,7 +11,6 @@ predicted: list = ([predicted_columns] if isinstance(predicted_columns, str)
 
 @pytest.mark.parametrize('value, error_messages', (
     (incorrect_1, None),
-    # (incorrect_1, [Messages.FHG004]),
 ))
 def test_plugin_on_simple_indentation(run_plugin, value, error_messages):
     """Test plugin on simple indentation.

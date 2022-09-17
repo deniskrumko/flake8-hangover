@@ -81,7 +81,7 @@ class Case5:
 
 @register_case
 class Case6:
-    errors = None
+    errors = [Messages.FHG004]
     code = """
     def _hello_world(param: pd.DataFrame, other_param: sklearn.base.BaseEstimator,
         extra_param: Optional[Dict] = None) -> str:
@@ -91,7 +91,7 @@ class Case6:
 
 @register_case
 class Case7:
-    errors = [Messages.FHG001]
+    errors = [Messages.FHG004, Messages.FHG001]
     code = """
     def _calc_pdp(df: pd.DataFrame, estimator: sklearn.base.BaseEstimator,
                 pdp_kwarg: Optional[Dict]) -> List[pdp.PDPIsolate]:
@@ -101,7 +101,7 @@ class Case7:
 
 @register_case
 class Case8:
-    errors = [Messages.FHG001]
+    errors = [Messages.FHG004, Messages.FHG001]
     code = """
     def _hello_world(param: pd.DataFrame, other_param: sklearn.base.BaseEstimator,
                     extra_param: Optional[Dict] = None) -> str:
@@ -122,16 +122,52 @@ class Case9:
     """
 
 
+@register_case
+class Case10:
+    errors = [Messages.FHG004]
+    code = """
+    def test_something(foo, bar,
+        buzz):
+        return None
+    """
+
+
+@register_case
+class Case11:
+    errors = [Messages.FHG004]
+    code = """
+    def test_something(key=foo,
+        value=buzz,
+    ):
+        return key + value
+    """
+
+
+@register_case
+class Case12:
+    errors = None
+    code = """
+    def test_something(
+        foo, bar, buzz,
+    ):
+        return None
+    """
+
+
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
 def test_plugin_on_func_definition(run_plugin, case):
     """Test plugin on function definitions."""
     code, expected_errors = case.code, case.errors
-    found_errors = list(run_plugin(code, strip_tabs=1))
+    found_errors = sorted(run_plugin(code, strip_tabs=1))
 
     if expected_errors:
         assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'
         for i, msg in enumerate(expected_errors):
-            assert found_errors[i].endswith(msg)
+            assert found_errors[i].endswith(msg), (
+                f'Case "{case.__name__}" failed.\n'
+                f'Error: {found_errors[i]}\n'
+                f'Expected: {msg}'
+            )
     else:
         assert not found_errors
 
@@ -141,11 +177,15 @@ def test_plugin_on_async_func_definition(run_plugin, case):
     """Test plugin on async function definitions."""
     code, expected_errors = case.code, case.errors
     code = code.replace('def ', 'async def ')
-    found_errors = list(run_plugin(code, strip_tabs=1))
+    found_errors = sorted(run_plugin(code, strip_tabs=1))
 
     if expected_errors:
         assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'
         for i, msg in enumerate(expected_errors):
-            assert found_errors[i].endswith(msg)
+            assert found_errors[i].endswith(msg), (
+                f'Case "{case.__name__}" failed.\n'
+                f'Error: {found_errors[i]}\n'
+                f'Expected: {msg}'
+            )
     else:
         assert not found_errors

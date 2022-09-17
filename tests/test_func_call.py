@@ -266,6 +266,10 @@ def test_plugin_on_func_call(run_plugin, case):
     if expected_errors:
         assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'
         for i, msg in enumerate(expected_errors):
-            assert found_errors[i].endswith(msg)
+            assert found_errors[i].endswith(msg), (
+                f'Case "{case.__name__}" failed.\n'
+                f'Error: {found_errors[i]}\n'
+                f'Expected: {msg}'
+            )
     else:
         assert not found_errors
