@@ -127,7 +127,9 @@ class Visitor(ast.NodeVisitor):
             return
         start_line_tokens = self._get_tokens_for_line(start_lineno)
         start_indent = self._get_indent(start_line_tokens)
-        open_brackets = sum((count_parentheses(0, token.string) for token in start_line_tokens))
+        open_brackets = sum((
+            count_parentheses(0, token.string) for token in start_line_tokens if token.string
+        ))
         # all opened brackets on line with assign started should be closed on last assign` line
         if end_offset != start_indent + open_brackets:
             self.errors.append((end_lineno, end_offset, Messages.FHG007))
