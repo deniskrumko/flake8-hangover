@@ -1,4 +1,5 @@
 import ast
+import tokenize
 from typing import (
     Any,
     Generator,
@@ -24,9 +25,10 @@ class Messages:
 class Visitor(ast.NodeVisitor):
     """Class for visiting ast nodes."""
 
-    def __init__(self) -> None:
+    def __init__(self, tokens: List[tokenize.TokenInfo]) -> None:
         """Initialize class instance."""
         self.errors: List[Tuple[int, int, str]] = []
+        self._tokens = tokens
 
     def visit_Call(self, node: ast.Call) -> None:
         """Visit ``Call`` node."""
@@ -35,20 +37,13 @@ class Visitor(ast.NodeVisitor):
         args_min_offset = node.col_offset + TAB_SIZE
         end_lineno = node.end_lineno or 0
         end_col_offset = node.end_col_offset or 0
-        close_brackets_count = 1  # allow structure open/close brackets at the same lines as call
-        last_inner_lineno = cur_lineno  # not include args which started with node
+        last_inner_lineno = cur_lineno  # not include args which started at the same line as node
 
         # Iterate over positional arguments
         for arg in node.args:
             col_offset = arg.col_offset
             lineno = arg.lineno
             args_min_offset = min(args_min_offset, arg.col_offset)
-            for subnode in ast.walk(arg):
-                if (
-                    getattr(subnode, 'lineno', None) == node.lineno
-                    and getattr(subnode, 'end_lineno', None) == end_lineno
-                ):
-                    close_brackets_count += 1
 
             if lineno - cur_lineno == 1:
                 if func_name_offset is None:
@@ -82,9 +77,12 @@ class Visitor(ast.NodeVisitor):
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         if node.lineno != cur_lineno:  # skip one-liners
+            # get expected brackets number for last line
+            # 1 in case there is something other then bracket at the end of the line
+            expected_brackets = self._count_brackets(node.lineno, node.col_offset, True) or 1
             if end_lineno == last_inner_lineno:  # close bracker on the same line as last param
                 self.errors.append((end_lineno, end_col_offset, Messages.FHG005))
-            elif end_col_offset - close_brackets_count != args_min_offset - TAB_SIZE:
+            elif end_col_offset - expected_brackets != args_min_offset - TAB_SIZE:
                 # last line should contain same brackets count as started on first nodes' line
                 self.errors.append((end_lineno, end_col_offset, Messages.FHG006))
 
@@ -149,15 +147,46 @@ class Visitor(ast.NodeVisitor):
         except Exception:
             return ''
 
+    def _count_brackets(self, lineno: int, start_offset: int, find_open: bool) -> int:
+        """Count open / close brackets at the end of specific line."""
+        SKIP_TOKENS = {
+            tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.COMMENT,
+        }
+        OPEN_BRACKETS = {'(', '{', '['}
+        CLOSE_BRACKETS = {')', '}', ']'}
+        bracket_count = 0
+        for token in reversed(self._tokens):
+            line, offset = token.start
+            if line < lineno or (line == lineno and offset < start_offset):
+                # just in case nothing found
+                break
+            if line > lineno:
+                continue
+            if token.type in SKIP_TOKENS:
+                # skip empty ones and comments
+                continue
+            if token.type == tokenize.OP:
+                # get all bracket from the end of the line
+                if (
+                    (find_open and token.string in OPEN_BRACKETS)
+                    or (not find_open and token.string in CLOSE_BRACKETS)
+                ):
+                    bracket_count += 1
+                    continue
+            # non-bracket token found
+            break
+        return bracket_count
+
 
 class Plugin:
     """Class to run flake8 plugin."""
 
     name = 'flake8-hangover'
 
-    def __init__(self, tree: ast.AST):
+    def __init__(self, tree: ast.AST, file_tokens: List[tokenize.TokenInfo]):
         """Initialize class instance."""
         self._tree = tree
+        self._tokens = file_tokens
 
     @property
     def version(self) -> str:
@@ -167,7 +196,7 @@ class Plugin:
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         """Run plugin."""
-        visitor = Visitor()
+        visitor = Visitor(tokens=self._tokens)
         visitor.visit(self._tree)
 
         for lineno, col_offset, error_msg in visitor.errors:
