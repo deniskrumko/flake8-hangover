@@ -48,7 +48,7 @@ class Case2:
 
 @register_case
 class Case3:
-    errors = None
+    errors = [Messages.FHG005]
     code = """
     def foo():
         my_func(value='name',
@@ -228,7 +228,7 @@ class Case17:
 
 @register_case
 class Case18:
-    errors = [Messages.FHG002]
+    errors = [Messages.FHG002, Messages.FHG005]
     code = """
     def foo():
         if use_shap:
@@ -239,7 +239,7 @@ class Case18:
 
 @register_case
 class Case19:
-    errors = [Messages.FHG002]
+    errors = [Messages.FHG002, Messages.FHG005]
     code = """
     if a != b:
         error_message = get_error_message(param,
@@ -249,7 +249,7 @@ class Case19:
 
 @register_case
 class Case20:
-    errors = [Messages.FHG003]
+    errors = [Messages.FHG003, Messages.FHG005]
     code = """
     def foo():
         my_func(value='name',
@@ -257,11 +257,69 @@ class Case20:
     """
 
 
+@register_case
+class Case21:
+    errors = [Messages.FHG005]
+    code = """
+    def foo():
+        my_func(
+            value='name',
+            other_value='hello')
+    """
+
+
+@register_case
+class Case22:
+    errors = [Messages.FHG005]
+    code = """
+    def foo():
+        my_func(
+            'name',
+            'hello')
+    """
+
+
+@register_case
+class Case23:
+    errors = [Messages.FHG006]
+    code = """
+    def foo():
+        my_func(
+            value='name',
+            other_value='hello'
+            )
+    """
+
+
+@register_case
+class Case24:
+    errors = [Messages.FHG006]
+    code = """
+    def foo():
+        my_func(
+            'name',
+            'hello'
+            )
+    """
+
+
+@register_case
+class Case25:
+    errors = [Messages.FHG006]
+    code = """
+    def foo():
+        result = my_func(
+            value='name',
+            other_value='hello'
+            )
+    """
+
+
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
 def test_plugin_on_func_call(run_plugin, case):
     """Test plugin on function calls."""
-    code, expected_errors = case.code, case.errors
-    found_errors = list(run_plugin(code, strip_tabs=1))
+    code, expected_errors = case.code, sorted(case.errors or [])
+    found_errors = sorted(list(run_plugin(code, strip_tabs=1)))
 
     if expected_errors:
         assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'

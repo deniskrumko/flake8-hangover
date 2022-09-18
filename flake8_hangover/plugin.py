@@ -17,6 +17,8 @@ class Messages:
     FHG002 = 'FHG002 Function call positional argument has hanging indentation'
     FHG003 = 'FHG003 Function call keyword argument has hanging indentation'
     FHG004 = 'FHG004 First function argument must be on new line'
+    FHG005 = 'FHG005 Function close bracket must be on new line'
+    FHG006 = 'FHG006 Function close bracket got over indentation'
 
 
 class Visitor(ast.NodeVisitor):
@@ -30,11 +32,15 @@ class Visitor(ast.NodeVisitor):
         """Visit ``Call`` node."""
         cur_lineno = node.lineno
         func_name_offset = None
+        args_min_offset = node.col_offset + TAB_SIZE
+        end_lineno = node.end_lineno or 0
+        end_col_offset = node.end_col_offset or 0
 
         # Iterate over positional arguments
         for arg in node.args:
             col_offset = arg.col_offset
             lineno = arg.lineno
+            args_min_offset = min(args_min_offset, arg.col_offset)
 
             if lineno - cur_lineno == 1:
                 if func_name_offset is None:
@@ -49,6 +55,7 @@ class Visitor(ast.NodeVisitor):
         for kwarg in node.keywords:
             col_offset = kwarg.value.col_offset - len(str(kwarg.arg or '')) - 1  # 1 is for "="
             lineno = kwarg.value.lineno
+            args_min_offset = min(args_min_offset, kwarg.col_offset)
 
             if lineno - cur_lineno == 1:
                 if func_name_offset is None:
@@ -61,6 +68,12 @@ class Visitor(ast.NodeVisitor):
                     self.errors.append((lineno, col_offset, Messages.FHG003))
 
             cur_lineno = getattr(kwarg, 'end_lineno', lineno)
+
+        if node.lineno != cur_lineno:  # skip one-liners
+            if end_lineno == cur_lineno:  # close bracker on the same line as last param
+                self.errors.append((end_lineno, end_col_offset, Messages.FHG005))
+            elif end_col_offset - 1 != args_min_offset - TAB_SIZE:  # 1 is bracket size
+                self.errors.append((end_lineno, end_col_offset, Messages.FHG006))
 
         self.generic_visit(node)
 
