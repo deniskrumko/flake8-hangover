@@ -38,16 +38,17 @@ class Visitor(ast.NodeVisitor):
         """Visit ``Call`` node."""
         cur_lineno = node.lineno
         func_name_offset = None
-        args_min_offset = node.col_offset + TAB_SIZE
         end_lineno = node.end_lineno or 0
         end_col_offset = node.end_col_offset or 0
         last_inner_lineno = cur_lineno  # not include args which started at the same line as node
+
+        start_line_tokens = self._get_tokens_for_line(cur_lineno)
+        start_indent = self._get_indent(start_line_tokens)
 
         # Iterate over positional arguments
         for arg in node.args:
             col_offset = arg.col_offset
             lineno = arg.lineno
-            args_min_offset = min(args_min_offset, arg.col_offset)
 
             if lineno - cur_lineno == 1:
                 if func_name_offset is None:
@@ -64,7 +65,6 @@ class Visitor(ast.NodeVisitor):
         for kwarg in node.keywords:
             col_offset = kwarg.value.col_offset - len(str(kwarg.arg or '')) - 1  # 1 is for "="
             lineno = kwarg.value.lineno
-            args_min_offset = min(args_min_offset, kwarg.col_offset)
 
             if lineno - cur_lineno == 1:
                 if func_name_offset is None:
@@ -86,7 +86,7 @@ class Visitor(ast.NodeVisitor):
             expected_brackets = self._count_brackets(node.lineno, node.col_offset, True) or 1
             if end_lineno == last_inner_lineno:  # close bracker on the same line as last param
                 self.errors.append((end_lineno, end_col_offset, Messages.FHG005))
-            elif end_col_offset - expected_brackets != args_min_offset - TAB_SIZE:
+            elif end_col_offset - expected_brackets != start_indent:
                 # last line should contain same brackets count as started on first nodes' line
                 self.errors.append((end_lineno, end_col_offset, Messages.FHG006))
 
