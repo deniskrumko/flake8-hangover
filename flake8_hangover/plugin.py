@@ -35,12 +35,20 @@ class Visitor(ast.NodeVisitor):
         args_min_offset = node.col_offset + TAB_SIZE
         end_lineno = node.end_lineno or 0
         end_col_offset = node.end_col_offset or 0
+        close_brackets_count = 1  # allow structure open/close brackets at the same lines as call
+        last_inner_lineno = cur_lineno  # not include args which started with node
 
         # Iterate over positional arguments
         for arg in node.args:
             col_offset = arg.col_offset
             lineno = arg.lineno
             args_min_offset = min(args_min_offset, arg.col_offset)
+            for subnode in ast.walk(arg):
+                if (
+                    getattr(subnode, 'lineno', None) == node.lineno
+                    and getattr(subnode, 'end_lineno', None) == end_lineno
+                ):
+                    close_brackets_count += 1
 
             if lineno - cur_lineno == 1:
                 if func_name_offset is None:
@@ -50,6 +58,8 @@ class Visitor(ast.NodeVisitor):
                     self.errors.append((lineno, col_offset, Messages.FHG002))
 
             cur_lineno = getattr(arg, 'end_lineno', lineno)
+            if lineno != node.lineno:
+                last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         # Iterate over keyword arguments
         for kwarg in node.keywords:
@@ -68,11 +78,14 @@ class Visitor(ast.NodeVisitor):
                     self.errors.append((lineno, col_offset, Messages.FHG003))
 
             cur_lineno = getattr(kwarg, 'end_lineno', lineno)
+            if kwarg.lineno != node.lineno:
+                last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         if node.lineno != cur_lineno:  # skip one-liners
-            if end_lineno == cur_lineno:  # close bracker on the same line as last param
+            if end_lineno == last_inner_lineno:  # close bracker on the same line as last param
                 self.errors.append((end_lineno, end_col_offset, Messages.FHG005))
-            elif end_col_offset - 1 != args_min_offset - TAB_SIZE:  # 1 is bracket size
+            elif end_col_offset - close_brackets_count != args_min_offset - TAB_SIZE:
+                # last line should contain same brackets count as started on first nodes' line
                 self.errors.append((end_lineno, end_col_offset, Messages.FHG006))
 
         self.generic_visit(node)
