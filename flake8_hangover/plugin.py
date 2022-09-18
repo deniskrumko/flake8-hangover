@@ -77,7 +77,7 @@ class Visitor(ast.NodeVisitor):
                     self.errors.append((lineno, col_offset, Messages.FHG003))
 
             cur_lineno = getattr(kwarg, 'end_lineno', lineno)
-            if kwarg.lineno != node.lineno:
+            if getattr(kwarg, 'lineno', lineno) != node.lineno:
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         if node.lineno != cur_lineno:  # skip one-liners
