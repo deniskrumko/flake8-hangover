@@ -192,6 +192,8 @@ class Visitor(ast.NodeVisitor):
         for token in tokens:
             if token.type == tokenize.INDENT:
                 return token.end[1]
+        if tokens:
+            return tokens[0].start[1]
         return 0
 
     def _count_brackets(self, lineno: int, start_offset: int, find_open: bool) -> int:
