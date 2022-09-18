@@ -6,7 +6,10 @@ from typing import (
     List,
     Tuple,
     Type,
+    Union,
 )
+
+from flake8.processor import count_parentheses
 
 TAB_SIZE = 4
 
@@ -20,6 +23,7 @@ class Messages:
     FHG004 = 'FHG004 First function argument must be on new line'
     FHG005 = 'FHG005 Function close bracket must be on new line'
     FHG006 = 'FHG006 Function close bracket got over indentation'
+    FHG007 = 'FHG007 Assignment close bracket must be on new line'
 
 
 class Visitor(ast.NodeVisitor):
@@ -98,6 +102,36 @@ class Visitor(ast.NodeVisitor):
         self._check_func_args_indentations(node)
         self.generic_visit(node)
 
+    def visit_Assign(self, node: ast.Assign) -> None:
+        """Visit ``Assign`` node."""
+        self._check_assign(node)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        """Visit ``AnnAssign`` node."""
+        self._check_assign(node)
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        """Visit ``AugAssign`` node."""
+        self._check_assign(node)
+        self.generic_visit(node)
+
+    def _check_assign(self, node: Union[ast.Assign, ast.AnnAssign, ast.AugAssign]) -> None:
+        """Check close bracket for assign is on new line and with corrent indent."""
+        start_lineno = node.lineno
+        end_lineno = node.end_lineno or start_lineno
+        start_offset = node.col_offset
+        end_offset = node.end_col_offset or start_offset
+        if start_lineno == end_lineno:  # skip one-liners
+            return
+        start_line_tokens = self._get_tokens_for_line(start_lineno)
+        start_indent = self._get_indent(start_line_tokens)
+        open_brackets = sum((count_parentheses(0, token.string) for token in start_line_tokens))
+        # all opened brackets on line with assign started should be closed on last assign` line
+        if end_offset != start_indent + open_brackets:
+            self.errors.append((end_lineno, end_offset, Messages.FHG007))
+
     def _check_func_args_indentations(self, node: Any) -> None:
         """Check indentations in function args/kwargs."""
         cur_lineno = node.lineno
@@ -147,6 +181,19 @@ class Visitor(ast.NodeVisitor):
         except Exception:
             return ''
 
+    def _get_tokens_for_line(self, line: int) -> List[tokenize.TokenInfo]:
+        result = []
+        for token in self._tokens:
+            if token.start[0] == line:
+                result.append(token)
+        return result
+
+    def _get_indent(self, tokens: List[tokenize.TokenInfo]) -> int:
+        for token in tokens:
+            if token.type == tokenize.INDENT:
+                return token.end[1]
+        return 0
+
     def _count_brackets(self, lineno: int, start_offset: int, find_open: bool) -> int:
         """Count open / close brackets at the end of specific line."""
         SKIP_TOKENS = {
@@ -155,13 +202,11 @@ class Visitor(ast.NodeVisitor):
         OPEN_BRACKETS = {'(', '{', '['}
         CLOSE_BRACKETS = {')', '}', ']'}
         bracket_count = 0
-        for token in reversed(self._tokens):
+        for token in reversed(self._get_tokens_for_line(lineno)):
             line, offset = token.start
-            if line < lineno or (line == lineno and offset < start_offset):
+            if offset < start_offset:
                 # just in case nothing found
                 break
-            if line > lineno:
-                continue
             if token.type in SKIP_TOKENS:
                 # skip empty ones and comments
                 continue

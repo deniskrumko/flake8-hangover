@@ -228,7 +228,7 @@ class Case17:
 
 @register_case
 class Case18:
-    errors = [Messages.FHG002, Messages.FHG005]
+    errors = [Messages.FHG002, Messages.FHG005, Messages.FHG007]
     code = """
     def foo():
         if use_shap:
@@ -239,7 +239,7 @@ class Case18:
 
 @register_case
 class Case19:
-    errors = [Messages.FHG002, Messages.FHG005]
+    errors = [Messages.FHG002, Messages.FHG005, Messages.FHG007]
     code = """
     if a != b:
         error_message = get_error_message(param,
@@ -305,7 +305,7 @@ class Case24:
 
 @register_case
 class Case25:
-    errors = [Messages.FHG006]
+    errors = [Messages.FHG006, Messages.FHG007]
     code = """
     def foo():
         result = my_func(
