@@ -38,8 +38,8 @@ class Visitor(ast.NodeVisitor):
         """Visit ``Call`` node."""
         cur_lineno = node.lineno
         func_name_offset = None
-        end_lineno = node.end_lineno or 0
-        end_col_offset = node.end_col_offset or 0
+        node_end_lineno = node.end_lineno or 0
+        node_end_col_offset = node.end_col_offset or 0
         last_inner_lineno = cur_lineno  # not include args which started at the same line as node
 
         start_line_tokens = self._get_tokens_for_line(cur_lineno)
@@ -47,48 +47,48 @@ class Visitor(ast.NodeVisitor):
 
         # Iterate over positional arguments
         for arg in node.args:
-            col_offset = arg.col_offset
-            lineno = arg.lineno
+            arg_col_offset = self._get_arg_col_offset(arg)
+            arg_lineno = self._get_arg_lineno(arg)
 
-            if lineno - cur_lineno == 1:
+            if arg_lineno - cur_lineno == 1:
                 if func_name_offset is None:
                     func_name_offset = self._get_func_name_offset(node)
 
-                if col_offset > func_name_offset or col_offset % TAB_SIZE != 0:
-                    self.errors.append((lineno, col_offset, Messages.FHG002))
+                if arg_col_offset > func_name_offset or arg_col_offset % TAB_SIZE != 0:
+                    self.errors.append((arg_lineno, arg_col_offset, Messages.FHG002))
 
-            cur_lineno = getattr(arg, 'end_lineno', lineno)
-            if lineno != node.lineno:
+            cur_lineno = self._get_arg_end_lineno(arg, default=arg_lineno)
+            if arg_lineno != node.lineno:
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         # Iterate over keyword arguments
         for kwarg in node.keywords:
-            col_offset = kwarg.value.col_offset - len(str(kwarg.arg or '')) - 1  # 1 is for "="
-            lineno = kwarg.value.lineno
+            kwarg_col_offset = self._get_arg_col_offset(kwarg)
+            kwarg_lineno = self._get_arg_lineno(kwarg)
 
-            if lineno - cur_lineno == 1:
+            if kwarg_lineno - cur_lineno == 1:
                 if func_name_offset is None:
                     func_name_offset = self._get_func_name_offset(node)
 
                 if (
-                    col_offset > func_name_offset
-                    or (kwarg.arg and col_offset % TAB_SIZE != 0)
+                    kwarg_col_offset > func_name_offset
+                    or (kwarg.arg and kwarg_col_offset % TAB_SIZE != 0)
                 ):
-                    self.errors.append((lineno, col_offset, Messages.FHG003))
+                    self.errors.append((kwarg_lineno, kwarg_col_offset, Messages.FHG003))
 
-            cur_lineno = getattr(kwarg, 'end_lineno', lineno)
-            if getattr(kwarg, 'lineno', lineno) != node.lineno:
+            cur_lineno = self._get_arg_end_lineno(kwarg, default=kwarg_lineno)
+            if getattr(kwarg, 'lineno', kwarg_lineno) != node.lineno:
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         if node.lineno != cur_lineno:  # skip one-liners
             # get expected brackets number for last line
             # 1 in case there is something other then bracket at the end of the line
             expected_brackets = self._count_brackets(node.lineno, node.col_offset, True) or 1
-            if end_lineno == last_inner_lineno:  # close bracker on the same line as last param
-                self.errors.append((end_lineno, end_col_offset, Messages.FHG005))
-            elif end_col_offset - expected_brackets != start_indent:
+            if node_end_lineno == last_inner_lineno:  # close bracker on the same line as last param
+                self.errors.append((node_end_lineno, node_end_col_offset, Messages.FHG005))
+            elif node_end_col_offset - expected_brackets != start_indent:
                 # last line should contain same brackets count as started on first nodes' line
-                self.errors.append((end_lineno, end_col_offset, Messages.FHG006))
+                self.errors.append((node_end_lineno, node_end_col_offset, Messages.FHG006))
 
         self.generic_visit(node)
 
@@ -157,6 +157,33 @@ class Visitor(ast.NodeVisitor):
         ):
             self.errors.append(first_argument + (Messages.FHG004,))
 
+    def _get_arg_col_offset(self, obj: Any) -> int:
+        """Get `col_offset` for object."""
+        if isinstance(obj, ast.keyword):
+            return obj.value.col_offset - len(str(obj.arg or '')) - 1  # 1 is for "="
+        if isinstance(obj, ast.GeneratorExp):
+            return self._get_arg_col_offset(obj.elt)
+        return int(obj.col_offset)
+
+    def _get_arg_lineno(self, obj: Any) -> int:
+        if isinstance(obj, ast.keyword):
+            return self._get_arg_lineno(obj.value)
+        if isinstance(obj, ast.GeneratorExp):
+            return self._get_arg_lineno(obj.elt)
+
+        return int(obj.lineno)
+
+    def _get_arg_end_lineno(self, obj: Any, default: int = None) -> int:
+        """Get `end_lineno` for object."""
+        if isinstance(obj, ast.GeneratorExp):
+            last_gen = obj.generators[-1]
+            return max(
+                self._get_arg_end_lineno(last_gen.target),
+                self._get_arg_end_lineno(last_gen.iter),
+            )
+
+        return getattr(obj, 'end_lineno', int(obj.lineno if default is None else default))
+
     def _get_func_name_offset(self, node: Any) -> int:
         """Get function name offset."""
         func_name = self._get_func_name(node.func)
@@ -222,7 +249,6 @@ class Visitor(ast.NodeVisitor):
                 ):
                     bracket_count += 1
                     continue
-            # non-bracket token found
             break
         return bracket_count
 

@@ -369,6 +369,60 @@ class Case30:
     """
 
 
+@register_case
+class Case31:
+    errors = None
+    code = """
+    @parametrize('value, error_messages', (
+        (incorrect_1, None),
+    ))
+    def my_func():
+        pass
+    """
+
+
+@register_case
+class Case32:
+    errors = None
+    code = """
+    def shorten_key(value: Any) -> str:
+        return divider.join(
+            part[:max_part_length]
+            for part in value
+        )
+    """
+
+
+@register_case
+class Case33:
+    errors = [Messages.FHG005]
+    code = """
+    def shorten_key(value: Any) -> str:
+        return divider.join(
+            part[:max_part_length]
+            for part in value)
+    """
+
+
+@register_case
+class Case34:
+    errors = None
+    code = """
+    subplot = Plot(
+        x=list(range(1, len(score.cv_scores) + 1)),  # number of CV split on X axis
+        y=score.cv_scores,  # CV score on Y axis
+        label=score.tag or f'#{i}' if enable_labels else None,
+        linewidth=(
+            wide_line
+            if best_score and score.params == best_score.params
+            else default_line
+        ),
+        set_xticks=True,
+        plot_type=plot_type,
+    )
+    """
+
+
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
 def test_plugin_on_func_call(run_plugin, case):
     """Test plugin on function calls."""
@@ -376,7 +430,11 @@ def test_plugin_on_func_call(run_plugin, case):
     found_errors = sorted(list(run_plugin(code, strip_tabs=1)))
 
     if expected_errors:
-        assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'
+        assert len(found_errors) == len(expected_errors), (
+            f'Case "{case.__name__}" failed.\n'
+            f'Found: {found_errors}\n'
+            f'Expected: {expected_errors}'
+        )
         for i, msg in enumerate(expected_errors):
             assert found_errors[i].endswith(msg), (
                 f'Case "{case.__name__}" failed.\n'
@@ -384,4 +442,8 @@ def test_plugin_on_func_call(run_plugin, case):
                 f'Expected: {msg}'
             )
     else:
-        assert not found_errors
+        assert not found_errors, (
+            f'Case "{case.__name__}" failed.\n'
+            f'Found: {found_errors}\n'
+            f'Expected no errors'
+        )
