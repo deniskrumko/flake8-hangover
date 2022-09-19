@@ -1,4 +1,6 @@
 import ast
+from io import StringIO
+from tokenize import generate_tokens
 from typing import Optional
 
 import pytest
@@ -13,5 +15,7 @@ def run_plugin():
         if strip_tabs:
             tabs = strip_tabs * 4
             code_str = '\n'.join([line[tabs:] for line in code_str.strip('\n').split('\n')])
-        return {'{}:{}: {}'.format(*r) for r in Plugin(ast.parse(code_str)).run()}
+        tree = ast.parse(code_str)
+        tokens = list(generate_tokens(StringIO(code_str).readline))
+        return {'{}:{}: {}'.format(*r) for r in Plugin(tree=tree, file_tokens=tokens).run()}
     return wrapper
