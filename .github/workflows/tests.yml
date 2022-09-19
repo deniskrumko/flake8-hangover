@@ -22,7 +22,7 @@ jobs:
       run: python -m pip install pipenv
     - name: dependencies
       if: steps.python.outputs.cache-hit != 'true'
-      run: pipenv install --deploy --dev
+      run: pipenv install --deploy --dev --python ${{ matrix.python-version }}
     - name: flake8
       run: pipenv run flake8 .
     - name: mypy
