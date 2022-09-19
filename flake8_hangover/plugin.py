@@ -23,7 +23,7 @@ class Messages:
     FHG004 = 'FHG004 First function argument must be on new line'
     FHG005 = 'FHG005 Function close bracket must be on new line'
     FHG006 = 'FHG006 Function close bracket got over indentation'
-    FHG007 = 'FHG007 Assignment close bracket must be on new line'
+    FHG007 = 'FHG007 Assignment close bracket got over indentation'
 
 
 class Visitor(ast.NodeVisitor):
@@ -41,9 +41,6 @@ class Visitor(ast.NodeVisitor):
         node_end_lineno = node.end_lineno or 0
         node_end_col_offset = node.end_col_offset or 0
         last_inner_lineno = cur_lineno  # not include args which started at the same line as node
-
-        start_line_tokens = self._get_tokens_for_line(cur_lineno)
-        start_indent = self._get_indent(start_line_tokens)
 
         # Iterate over positional arguments
         for arg in node.args:
@@ -81,14 +78,12 @@ class Visitor(ast.NodeVisitor):
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
         if node.lineno != cur_lineno:  # skip one-liners
-            # get expected brackets number for last line
-            # 1 in case there is something other then bracket at the end of the line
-            expected_brackets = self._count_brackets(node.lineno, node.col_offset, True) or 1
-            if node_end_lineno == last_inner_lineno:  # close bracker on the same line as last param
+            if node_end_lineno == last_inner_lineno:
+                # close bracker should be on the same line as last param
                 self.errors.append((node_end_lineno, node_end_col_offset, Messages.FHG005))
-            elif node_end_col_offset - expected_brackets != start_indent:
-                # last line should contain same brackets count as started on first nodes' line
-                self.errors.append((node_end_lineno, node_end_col_offset, Messages.FHG006))
+            else:
+                # check correct brackets number for last line
+                self._check_close_brackets_position(node)
 
         self.generic_visit(node)
 
@@ -104,21 +99,24 @@ class Visitor(ast.NodeVisitor):
 
     def visit_Assign(self, node: ast.Assign) -> None:
         """Visit ``Assign`` node."""
-        self._check_assign(node)
+        self._check_close_brackets_position(node)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Visit ``AnnAssign`` node."""
-        self._check_assign(node)
+        self._check_close_brackets_position(node)
         self.generic_visit(node)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         """Visit ``AugAssign`` node."""
-        self._check_assign(node)
+        self._check_close_brackets_position(node)
         self.generic_visit(node)
 
-    def _check_assign(self, node: Union[ast.Assign, ast.AnnAssign, ast.AugAssign]) -> None:
-        """Check close bracket for assign is on new line and with corrent indent."""
+    def _check_close_brackets_position(
+        self,
+        node: Union[ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Call],
+    ) -> None:
+        """Check all opened brackets from 1st line closes on last line (and no other code there)."""
         start_lineno = node.lineno
         end_lineno = node.end_lineno or start_lineno
         start_offset = node.col_offset
@@ -132,7 +130,11 @@ class Visitor(ast.NodeVisitor):
         ))
         # all opened brackets on line with assign started should be closed on last assign` line
         if open_brackets and end_offset != start_indent + open_brackets:
-            self.errors.append((end_lineno, end_offset, Messages.FHG007))
+            if isinstance(node, ast.Call):
+                error = Messages.FHG006
+            else:
+                error = Messages.FHG007
+            self.errors.append((end_lineno, end_offset, error))
 
     def _check_func_args_indentations(self, node: Any) -> None:
         """Check indentations in function args/kwargs."""
@@ -224,33 +226,6 @@ class Visitor(ast.NodeVisitor):
         if tokens:
             return tokens[0].start[1]
         return 0
-
-    def _count_brackets(self, lineno: int, start_offset: int, find_open: bool) -> int:
-        """Count open / close brackets at the end of specific line."""
-        SKIP_TOKENS = {
-            tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.COMMENT,
-        }
-        OPEN_BRACKETS = {'(', '{', '['}
-        CLOSE_BRACKETS = {')', '}', ']'}
-        bracket_count = 0
-        for token in reversed(self._get_tokens_for_line(lineno)):
-            line, offset = token.start
-            if offset < start_offset:
-                # just in case nothing found
-                break
-            if token.type in SKIP_TOKENS:
-                # skip empty ones and comments
-                continue
-            if token.type == tokenize.OP:
-                # get all bracket from the end of the line
-                if (
-                    (find_open and token.string in OPEN_BRACKETS)
-                    or (not find_open and token.string in CLOSE_BRACKETS)
-                ):
-                    bracket_count += 1
-                    continue
-            break
-        return bracket_count
 
 
 class Plugin:
