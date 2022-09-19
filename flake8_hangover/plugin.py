@@ -131,7 +131,7 @@ class Visitor(ast.NodeVisitor):
             count_parentheses(0, token.string) for token in start_line_tokens if token.string
         ))
         # all opened brackets on line with assign started should be closed on last assign` line
-        if end_offset != start_indent + open_brackets:
+        if open_brackets and end_offset != start_indent + open_brackets:
             self.errors.append((end_lineno, end_offset, Messages.FHG007))
 
     def _check_func_args_indentations(self, node: Any) -> None:
