@@ -228,7 +228,7 @@ class Case17:
 
 @register_case
 class Case18:
-    errors = [Messages.FHG002, Messages.FHG005, Messages.FHG007]
+    errors = [Messages.FHG002, Messages.FHG005]
     code = """
     def foo():
         if use_shap:
@@ -239,7 +239,7 @@ class Case18:
 
 @register_case
 class Case19:
-    errors = [Messages.FHG002, Messages.FHG005, Messages.FHG007]
+    errors = [Messages.FHG002, Messages.FHG005]
     code = """
     if a != b:
         error_message = get_error_message(param,
@@ -305,7 +305,7 @@ class Case24:
 
 @register_case
 class Case25:
-    errors = [Messages.FHG006, Messages.FHG007]
+    errors = [Messages.FHG006]
     code = """
     def foo():
         result = my_func(
@@ -420,6 +420,36 @@ class Case34:
         set_xticks=True,
         plot_type=plot_type,
     )
+    """
+
+
+@register_case
+class Case35:
+    errors = None
+    code = """
+    return str(plot_subplots(
+        subplots=[plot],
+    ))
+    """
+
+
+@register_case
+class Case36:
+    errors = None
+    code = """
+    shap_list = np.abs(
+        param=10,
+    ).mean(0)
+    """
+
+
+@register_case
+class Case37:
+    errors = None
+    code = """
+    self.X_val[sorted_columns].columns[
+        sorted_importances_idx[::-1]
+    ].to_list()
     """
 
 

@@ -2,8 +2,10 @@ import ast
 import tokenize
 from typing import (
     Any,
+    Dict,
     Generator,
     List,
+    Optional,
     Tuple,
     Type,
     Union,
@@ -31,8 +33,13 @@ class Visitor(ast.NodeVisitor):
 
     def __init__(self, tokens: List[tokenize.TokenInfo]) -> None:
         """Initialize class instance."""
-        self.errors: List[Tuple[int, int, str]] = []
+        self.errors: Dict[Tuple[int, int], str] = {}
         self._tokens = tokens
+
+    def add_error(self, lineno: int, offset: int, error: str) -> None:
+        key = (lineno, offset)
+        if key not in self.errors:
+            self.errors[key] = error
 
     def visit_Call(self, node: ast.Call) -> None:
         """Visit ``Call`` node."""
@@ -52,7 +59,7 @@ class Visitor(ast.NodeVisitor):
                     func_name_offset = self._get_func_name_offset(node)
 
                 if arg_col_offset > func_name_offset or arg_col_offset % TAB_SIZE != 0:
-                    self.errors.append((arg_lineno, arg_col_offset, Messages.FHG002))
+                    self.add_error(arg_lineno, arg_col_offset, Messages.FHG002)
 
             cur_lineno = self._get_arg_end_lineno(arg, default=arg_lineno)
             if arg_lineno != node.lineno:
@@ -71,16 +78,17 @@ class Visitor(ast.NodeVisitor):
                     kwarg_col_offset > func_name_offset
                     or (kwarg.arg and kwarg_col_offset % TAB_SIZE != 0)
                 ):
-                    self.errors.append((kwarg_lineno, kwarg_col_offset, Messages.FHG003))
+                    self.add_error(kwarg_lineno, kwarg_col_offset, Messages.FHG003)
 
             cur_lineno = self._get_arg_end_lineno(kwarg, default=kwarg_lineno)
             if getattr(kwarg, 'lineno', kwarg_lineno) != node.lineno:
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
-        if node.lineno != cur_lineno:  # skip one-liners
+        node_meaning_lineno = self._get_node_meaning_lineno(node)
+        if node_meaning_lineno != cur_lineno:  # skip one-liners
             if node_end_lineno == last_inner_lineno:
-                # close bracker should be on the same line as last param
-                self.errors.append((node_end_lineno, node_end_col_offset, Messages.FHG005))
+                # close bracker shouldn't be on the same line as last param
+                self.add_error(node_end_lineno, node_end_col_offset, Messages.FHG005)
             else:
                 # check correct brackets number for last line
                 self._check_close_brackets_position(node)
@@ -123,18 +131,35 @@ class Visitor(ast.NodeVisitor):
         end_offset = node.end_col_offset or start_offset
         if start_lineno == end_lineno:  # skip one-liners
             return
-        start_line_tokens = self._get_tokens_for_line(start_lineno)
+        start_line_tokens = self._get_tokens_for_line(start_lineno, None)
+        node_line_tokens = self._get_tokens_for_line(start_lineno, start_offset)
         start_indent = self._get_indent(start_line_tokens)
         open_brackets = sum((
-            count_parentheses(0, token.string) for token in start_line_tokens if token.string
+            count_parentheses(0, token.string) for token in node_line_tokens if token.string
         ))
+
+        if self._check_ends_with_call(node, end_offset):
+            return
+
         # all opened brackets on line with assign started should be closed on last assign` line
-        if open_brackets and end_offset != start_indent + open_brackets:
+        if (
+            open_brackets
+            and end_offset != start_indent + open_brackets
+        ):
             if isinstance(node, ast.Call):
                 error = Messages.FHG006
             else:
                 error = Messages.FHG007
-            self.errors.append((end_lineno, end_offset, error))
+            self.add_error(end_lineno, end_offset, error)
+
+    def _check_ends_with_call(self, node: Any, end_offset: int) -> bool:
+        inner_end = None
+        if isinstance(node, ast.Call):
+            inner_end = node.func.end_col_offset
+        elif isinstance(node.value, ast.Call):
+            inner_end = node.value.end_col_offset
+
+        return inner_end is not None and inner_end <= end_offset
 
     def _check_func_args_indentations(self, node: Any) -> None:
         """Check indentations in function args/kwargs."""
@@ -148,7 +173,7 @@ class Visitor(ast.NodeVisitor):
 
             if arg.lineno != cur_lineno:
                 if arg.col_offset != node.col_offset + 4:
-                    self.errors.append((arg.lineno, arg.col_offset, Messages.FHG001))
+                    self.add_error(arg.lineno, arg.col_offset, Messages.FHG001)
                 cur_lineno = arg.lineno
                 multiline_arguments = True
 
@@ -157,7 +182,7 @@ class Visitor(ast.NodeVisitor):
             and first_argument
             and first_argument[0] == node.lineno
         ):
-            self.errors.append(first_argument + (Messages.FHG004,))
+            self.add_error(*first_argument, Messages.FHG004)
 
     def _get_arg_col_offset(self, obj: Any) -> int:
         """Get `col_offset` for object."""
@@ -212,10 +237,18 @@ class Visitor(ast.NodeVisitor):
         except Exception:
             return ''
 
-    def _get_tokens_for_line(self, line: int) -> List[tokenize.TokenInfo]:
+    def _get_node_meaning_lineno(self, node: ast.Call) -> int:
+        return node.func.end_lineno
+
+    def _get_tokens_for_line(
+        self, line: int, col_offset: Optional[int] = None,
+    ) -> List[tokenize.TokenInfo]:
         result = []
         for token in self._tokens:
-            if token.start[0] == line:
+            if (
+                token.start[0] == line
+                and (col_offset is None or token.start[1] >= col_offset)
+            ):
                 result.append(token)
         return result
 
@@ -249,5 +282,6 @@ class Plugin:
         visitor = Visitor(tokens=self._tokens)
         visitor.visit(self._tree)
 
-        for lineno, col_offset, error_msg in visitor.errors:
+        for error_key, error_msg in visitor.errors.items():
+            lineno, col_offset = error_key
             yield lineno, col_offset, error_msg, type(self)

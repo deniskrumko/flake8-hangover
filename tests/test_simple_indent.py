@@ -54,6 +54,26 @@ class Case4:
     """
 
 
+@register_case
+class Case5:
+    errors = None
+    code = """
+    value = func(
+        param=1,
+    ).arg()
+    """
+
+
+@register_case
+class Case6:
+    errors = None
+    code = """
+    value = model.score(
+        param=1,
+    ) * 2 - 1
+    """
+
+
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
 def test_plugin_simple_indent(run_plugin, case):
     """Test plugin on simple indentation."""
