@@ -423,6 +423,16 @@ class Case34:
     """
 
 
+@register_case
+class Case35:
+    errors = None
+    code = """
+    result = [Class(
+        kw='',
+    )]
+    """
+
+
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
 def test_plugin_on_func_call(run_plugin, case):
     """Test plugin on function calls."""
