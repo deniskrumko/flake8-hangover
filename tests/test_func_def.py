@@ -169,7 +169,11 @@ def test_plugin_on_func_definition(run_plugin, case):
                 f'Expected: {msg}'
             )
     else:
-        assert not found_errors
+        assert not found_errors, (
+            f'Case "{case.__name__}" failed.\n'
+            f'Found: {found_errors}\n'
+            f'Expected no errors'
+        )
 
 
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
@@ -188,4 +192,8 @@ def test_plugin_on_async_func_definition(run_plugin, case):
                 f'Expected: {msg}'
             )
     else:
-        assert not found_errors
+        assert not found_errors, (
+            f'Case "{case.__name__}" failed.\n'
+            f'Found: {found_errors}\n'
+            f'Expected no errors'
+        )

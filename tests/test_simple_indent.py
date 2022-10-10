@@ -89,4 +89,8 @@ def test_plugin_simple_indent(run_plugin, case):
                 f'Expected: {msg}'
             )
     else:
-        assert not found_errors
+        assert not found_errors, (
+            f'Case "{case.__name__}" failed.\n'
+            f'Found: {found_errors}\n'
+            f'Expected no errors'
+        )

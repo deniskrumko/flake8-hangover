@@ -131,11 +131,57 @@ def test_something(
     ...
 ```
 
-# TODO: Not yet implemented cases
+## FHG005 Function close bracket must be on new line
 
-Hanging indentation in cases with brackets like this is not yet checked by linter:
 ```python
-# Hanging indentation on `World`
-my_string = ('Hello '
-             'World')
+# ERROR: Close bracket on line with last parameter not allowed
+func(
+    123,
+    456)
+```
+
+```python
+# OK: Close bracket on new line
+func(
+    123,
+    456,
+)
+```
+
+## FHG006 Function close bracket got over indentation
+
+It mostly overlapping [E123](https://www.flake8rules.com/rules/E123.html), but a bit wider.
+
+```python
+# ERROR: Function close bracket over indented to the right
+func({
+    {
+        'key': 'value',
+    }})
+```
+
+```python
+# OK: Close bracket aligned with first line
+func({
+    {
+        'key': 'value',
+    }
+})
+```
+
+## FHG007 Assignment close bracket got over indentation
+
+```python
+# ERROR: Close bracket not aligned with open bracket's line
+result = [
+    1,
+    2]
+```
+
+```python
+# OK: Close bracket aligned with first line
+result = [
+    1,
+    2,
+]
 ```

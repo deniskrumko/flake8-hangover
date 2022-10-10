@@ -132,10 +132,12 @@ class Visitor(ast.NodeVisitor):
         if start_lineno == end_lineno:  # skip one-liners
             return
         start_line_tokens = self._get_tokens_for_line(start_lineno, None)
-        node_line_tokens = self._get_tokens_for_line(start_lineno, start_offset)
+        # node_line_tokens = self._get_tokens_for_line(start_lineno, start_offset)
         start_indent = self._get_indent(start_line_tokens)
         open_brackets = sum((
-            count_parentheses(0, token.string) for token in node_line_tokens if token.string
+            count_parentheses(0, token.string)
+            for token in start_line_tokens
+            if token.string and token.start[1] >= start_offset
         ))
 
         if self._check_ends_with_call(node, end_offset):
