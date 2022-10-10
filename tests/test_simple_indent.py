@@ -74,6 +74,49 @@ class Case6:
     """
 
 
+@register_case
+class Case7:
+    errors = None
+    code = """
+    final_score['index'] = [
+        i for i in range(0, len(sorted_columns), self.step)
+    ][:final_score.shape[0]]
+    """
+
+
+@register_case
+class Case8:
+    errors = None
+    code = """
+    data_to_plot = create_distplot(
+        bin_size=bin_size,
+    ).data
+    """
+
+
+@register_case
+class Case9:
+    errors = None
+    code = """
+    class MyClass:
+        some_results: Union[
+            int,
+            HyperparametersOptimizationResult,
+            ModelInterpretationResult,
+        ] = 100
+    """
+
+
+@register_case
+class Case10:
+    errors = None
+    code = """
+    n_best_scores = sorted(
+        deserialized_scores,
+    )[-max_scores_on_plot:]
+    """
+
+
 @pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
 def test_plugin_simple_indent(run_plugin, case):
     """Test plugin on simple indentation."""
