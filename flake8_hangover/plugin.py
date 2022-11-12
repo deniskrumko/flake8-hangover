@@ -239,7 +239,7 @@ class Visitor(ast.NodeVisitor):
             return ''
 
     def _get_node_meaning_lineno(self, node: ast.Call) -> int:
-        return node.func.end_lineno
+        return node.func.end_lineno or node.func.lineno
 
     def _get_tokens_for_line(
         self, line: int, col_offset: Optional[int] = None,
