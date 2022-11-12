@@ -272,12 +272,6 @@ class Plugin:
         self._tree = tree
         self._tokens = file_tokens
 
-    @property
-    def version(self) -> str:
-        """Get package version."""
-        from . import __version__
-        return __version__
-
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         """Run plugin."""
         visitor = Visitor(tokens=self._tokens)

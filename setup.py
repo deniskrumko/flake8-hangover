@@ -3,8 +3,6 @@ from typing import List
 
 from setuptools import setup
 
-from flake8_hangover import __version__
-
 this_directory = Path(__file__).parent
 long_description = (this_directory / 'README.md').read_text()
 
@@ -20,7 +18,8 @@ def get_install_requires() -> List[str]:
 
 setup(
     name='flake8-hangover',
-    version=__version__,
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     description='flake8 plugin to prevent specific hanging indentations',
     long_description=long_description,
     long_description_content_type='text/markdown',
