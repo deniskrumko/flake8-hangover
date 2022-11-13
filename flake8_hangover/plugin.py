@@ -201,7 +201,7 @@ class Visitor(ast.NodeVisitor):
 
         return int(obj.lineno)
 
-    def _get_arg_end_lineno(self, obj: Any, default: int = None) -> int:
+    def _get_arg_end_lineno(self, obj: Any, default: Optional[int] = None) -> int:
         """Get `end_lineno` for object."""
         if isinstance(obj, ast.GeneratorExp):
             last_gen = obj.generators[-1]
