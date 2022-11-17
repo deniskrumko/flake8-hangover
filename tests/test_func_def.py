@@ -6,16 +6,11 @@ import pytest
 
 from flake8_hangover.plugin import Messages
 
-CLASSES_REGISTRY = {}
-
-
-def register_case(_class):
-    """Decorator to register case class."""
-    name = _class.__name__
-    if name in CLASSES_REGISTRY:
-        raise ValueError(f'Case "{name}" already exists')
-    CLASSES_REGISTRY[name] = _class
-    return _class
+from .conftest import (
+    CLASSES_REGISTRY,
+    check_registered_case,
+    register_case,
+)
 
 
 @register_case
@@ -154,46 +149,7 @@ class Case12:
     """
 
 
-@pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
+@pytest.mark.parametrize('case', CLASSES_REGISTRY[__name__].values())
 def test_plugin_on_func_definition(run_plugin, case):
-    """Test plugin on function definitions."""
-    code, expected_errors = case.code, case.errors
-    found_errors = sorted(run_plugin(code, strip_tabs=1))
-
-    if expected_errors:
-        assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'
-        for i, msg in enumerate(expected_errors):
-            assert found_errors[i].endswith(msg), (
-                f'Case "{case.__name__}" failed.\n'
-                f'Error: {found_errors[i]}\n'
-                f'Expected: {msg}'
-            )
-    else:
-        assert not found_errors, (
-            f'Case "{case.__name__}" failed.\n'
-            f'Found: {found_errors}\n'
-            f'Expected no errors'
-        )
-
-
-@pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
-def test_plugin_on_async_func_definition(run_plugin, case):
     """Test plugin on async function definitions."""
-    code, expected_errors = case.code, case.errors
-    code = code.replace('def ', 'async def ')
-    found_errors = sorted(run_plugin(code, strip_tabs=1))
-
-    if expected_errors:
-        assert len(found_errors) == len(expected_errors), f'Case "{case.__name__}" failed'
-        for i, msg in enumerate(expected_errors):
-            assert found_errors[i].endswith(msg), (
-                f'Case "{case.__name__}" failed.\n'
-                f'Error: {found_errors[i]}\n'
-                f'Expected: {msg}'
-            )
-    else:
-        assert not found_errors, (
-            f'Case "{case.__name__}" failed.\n'
-            f'Found: {found_errors}\n'
-            f'Expected no errors'
-        )
+    check_registered_case(run_plugin, case)
