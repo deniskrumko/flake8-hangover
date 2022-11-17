@@ -49,10 +49,11 @@ optional-dependencies.dev = [
 FHO = "flake8_hangover:Plugin"
 
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
 
-[tool.setuptools_scm]
+[tool.pdm]
+version = { source = "scm" }
 
 [tool.flake8]
 exclude = [

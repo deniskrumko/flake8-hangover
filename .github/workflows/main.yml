@@ -29,8 +29,8 @@ jobs:
         uses: ./.github/actions/deps
         with:
           python-version: '3.10'
-      - run: pip install build twine
-      - run: python -m build
+      - run: pip install build twine pdm-pep517
+      - run: python -m build -n
       - run: twine upload dist/*
         env:
           TWINE_USERNAME: __token__
