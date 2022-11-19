@@ -14,7 +14,6 @@ runs:
         cache: pip
         cache-dependency-path: pyproject.toml
     - name: dependencies
-      if: steps.python.outputs.cache-hit != 'true'
       # Build can be skipped with new option: https://github.com/pypa/pip/issues/11440
       # Or via some magic: https://github.com/pypa/pip/issues/8049#issuecomment-633845028
       run: pip install -e .[dev] && pip uninstall -y flake8-hangover
