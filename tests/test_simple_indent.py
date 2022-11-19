@@ -11,7 +11,7 @@ from .conftest import (
 
 @register_case
 class Case1:
-    errors = [Messages.FHG007]
+    errors = [Messages.FHG008]
     code = """
     predicted: list = ([predicted_columns] if isinstance(predicted_columns, str)
                     else predicted_columns)
@@ -20,7 +20,7 @@ class Case1:
 
 @register_case
 class Case2:
-    errors = [Messages.FHG007]
+    errors = [Messages.FHG008]
     code = """
     predicted = ([predicted_columns] if isinstance(predicted_columns, str)
                     else predicted_columns

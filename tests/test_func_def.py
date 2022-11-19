@@ -76,7 +76,7 @@ class Case5:
 
 @register_case
 class Case6:
-    errors = [Messages.FHG004]
+    errors = [Messages.FHG004, Messages.FHG008]
     code = """
     def _hello_world(param: pd.DataFrame, other_param: sklearn.base.BaseEstimator,
         extra_param: Optional[Dict] = None) -> str:
@@ -86,7 +86,7 @@ class Case6:
 
 @register_case
 class Case7:
-    errors = [Messages.FHG004, Messages.FHG001]
+    errors = [Messages.FHG004, Messages.FHG001, Messages.FHG008]
     code = """
     def _calc_pdp(df: pd.DataFrame, estimator: sklearn.base.BaseEstimator,
                 pdp_kwarg: Optional[Dict]) -> List[pdp.PDPIsolate]:
@@ -96,7 +96,7 @@ class Case7:
 
 @register_case
 class Case8:
-    errors = [Messages.FHG004, Messages.FHG001]
+    errors = [Messages.FHG004, Messages.FHG001, Messages.FHG008]
     code = """
     def _hello_world(param: pd.DataFrame, other_param: sklearn.base.BaseEstimator,
                     extra_param: Optional[Dict] = None) -> str:
@@ -119,7 +119,7 @@ class Case9:
 
 @register_case
 class Case10:
-    errors = [Messages.FHG004]
+    errors = [Messages.FHG004, Messages.FHG008]
     code = """
     def test_something(foo, bar,
         buzz):

@@ -8,26 +8,13 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    Union,
 )
 
-from flake8.processor import count_parentheses
-
 from .__version__ import __version__
+from .messages import Messages
+from .validator import IndentValidator
 
 TAB_SIZE = 4
-
-
-class Messages:
-    """Linter messages."""
-
-    FHG001 = 'FHG001 Function argument has hanging indentation'
-    FHG002 = 'FHG002 Function call positional argument has hanging indentation'
-    FHG003 = 'FHG003 Function call keyword argument has hanging indentation'
-    FHG004 = 'FHG004 First function argument must be on new line'
-    FHG005 = 'FHG005 Function close bracket must be on new line'
-    FHG006 = 'FHG006 Function close bracket got over indentation'
-    FHG007 = 'FHG007 Assignment close bracket got over indentation'
 
 
 class Visitor(ast.NodeVisitor):
@@ -47,8 +34,6 @@ class Visitor(ast.NodeVisitor):
         """Visit ``Call`` node."""
         cur_lineno = node.lineno
         func_name_offset = None
-        node_end_lineno = node.end_lineno or 0
-        node_end_col_offset = node.end_col_offset or 0
         last_inner_lineno = cur_lineno  # not include args which started at the same line as node
 
         # Iterate over positional arguments
@@ -86,15 +71,6 @@ class Visitor(ast.NodeVisitor):
             if getattr(kwarg, 'lineno', kwarg_lineno) != node.lineno:
                 last_inner_lineno = max(last_inner_lineno, cur_lineno)
 
-        node_meaning_lineno = self._get_node_meaning_lineno(node)
-        if node_meaning_lineno != cur_lineno:  # skip one-liners
-            if node_end_lineno == last_inner_lineno:
-                # close bracker shouldn't be on the same line as last param
-                self.add_error(node_end_lineno, node_end_col_offset, Messages.FHG005)
-            else:
-                # check correct brackets number for last line
-                self._check_close_brackets_position(node)
-
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -106,54 +82,6 @@ class Visitor(ast.NodeVisitor):
         """Visit ``AsyncFunctionDef`` node."""
         self._check_func_args_indentations(node)
         self.generic_visit(node)
-
-    def visit_Assign(self, node: ast.Assign) -> None:
-        """Visit ``Assign`` node."""
-        self._check_close_brackets_position(node)
-        self.generic_visit(node)
-
-    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        """Visit ``AnnAssign`` node."""
-        self._check_close_brackets_position(node)
-        self.generic_visit(node)
-
-    def visit_AugAssign(self, node: ast.AugAssign) -> None:
-        """Visit ``AugAssign`` node."""
-        self._check_close_brackets_position(node)
-        self.generic_visit(node)
-
-    def _check_close_brackets_position(
-        self,
-        node: Union[ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Call],
-    ) -> None:
-        """Check all opened brackets from 1st line closes on last line (and no other code there)."""
-        start_lineno = node.lineno
-        end_lineno = node.end_lineno or start_lineno
-        start_offset = node.col_offset
-        end_offset = node.end_col_offset or start_offset
-        if start_lineno == end_lineno:  # skip one-liners
-            return
-        start_line_tokens = self._get_tokens_for_line(start_lineno, None)
-        start_indent = self._get_indent(start_line_tokens)
-        open_brackets = sum((
-            count_parentheses(0, token.string)
-            for token in start_line_tokens
-            if token.string and token.start[1] >= start_offset
-        ))
-
-        if self._check_ends_with_call(node, end_offset):
-            return
-
-        # all opened brackets on line with assign started should be closed on last assign` line
-        if (
-            open_brackets
-            and end_offset != start_indent + open_brackets
-        ):
-            if isinstance(node, ast.Call):
-                error = Messages.FHG006
-            else:
-                error = Messages.FHG007
-            self.add_error(end_lineno, end_offset, error)
 
     def _check_ends_with_call(self, node: Any, end_offset: int) -> bool:
         inner_end = None
@@ -281,5 +209,11 @@ class Plugin:
         visitor.visit(self._tree)
 
         for error_key, error_msg in visitor.errors.items():
+            lineno, col_offset = error_key
+            yield lineno, col_offset, error_msg, type(self)
+
+        indent_validator = IndentValidator(tokens=self._tokens)
+        indent_validator.validate()
+        for error_key, error_msg in indent_validator.errors.items():
             lineno, col_offset = error_key
             yield lineno, col_offset, error_msg, type(self)
