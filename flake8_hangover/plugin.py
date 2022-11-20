@@ -13,6 +13,8 @@ from typing import (
 
 from flake8.processor import count_parentheses
 
+from .__version__ import __version__
+
 TAB_SIZE = 4
 
 
@@ -266,6 +268,7 @@ class Plugin:
     """Class to run flake8 plugin."""
 
     name = 'flake8-hangover'
+    version = __version__
 
     def __init__(self, tree: ast.AST, file_tokens: List[tokenize.TokenInfo]):
         """Initialize class instance."""
