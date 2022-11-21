@@ -7,16 +7,11 @@ import pytest
 
 from flake8_hangover.plugin import Messages
 
-CLASSES_REGISTRY = {}
-
-
-def register_case(_class):
-    """Decorator to register case class."""
-    name = _class.__name__
-    if name in CLASSES_REGISTRY:
-        raise ValueError(f'Case "{name}" already exists')
-    CLASSES_REGISTRY[name] = _class
-    return _class
+from .conftest import (
+    CLASSES_REGISTRY,
+    check_registered_case,
+    register_case,
+)
 
 
 @register_case
@@ -48,7 +43,7 @@ class Case2:
 
 @register_case
 class Case3:
-    errors = [Messages.FHG005]
+    errors = [Messages.FHG008]
     code = """
     def foo():
         my_func(value='name',
@@ -228,7 +223,7 @@ class Case17:
 
 @register_case
 class Case18:
-    errors = [Messages.FHG002, Messages.FHG005]
+    errors = [Messages.FHG002, Messages.FHG008]
     code = """
     def foo():
         if use_shap:
@@ -239,7 +234,7 @@ class Case18:
 
 @register_case
 class Case19:
-    errors = [Messages.FHG002, Messages.FHG005]
+    errors = [Messages.FHG002, Messages.FHG008]
     code = """
     if a != b:
         error_message = get_error_message(param,
@@ -249,7 +244,7 @@ class Case19:
 
 @register_case
 class Case20:
-    errors = [Messages.FHG003, Messages.FHG005]
+    errors = [Messages.FHG003, Messages.FHG008]
     code = """
     def foo():
         my_func(value='name',
@@ -259,7 +254,7 @@ class Case20:
 
 @register_case
 class Case21:
-    errors = [Messages.FHG005]
+    errors = [Messages.FHG008]
     code = """
     def foo():
         my_func(
@@ -270,7 +265,7 @@ class Case21:
 
 @register_case
 class Case22:
-    errors = [Messages.FHG005]
+    errors = [Messages.FHG008]
     code = """
     def foo():
         my_func(
@@ -281,7 +276,7 @@ class Case22:
 
 @register_case
 class Case23:
-    errors = [Messages.FHG006]
+    errors = [Messages.FHG008]
     code = """
     def foo():
         my_func(
@@ -293,7 +288,7 @@ class Case23:
 
 @register_case
 class Case24:
-    errors = [Messages.FHG006]
+    errors = [Messages.FHG008]
     code = """
     def foo():
         my_func(
@@ -305,7 +300,7 @@ class Case24:
 
 @register_case
 class Case25:
-    errors = [Messages.FHG006]
+    errors = [Messages.FHG008]
     code = """
     def foo():
         result = my_func(
@@ -395,7 +390,7 @@ class Case32:
 
 @register_case
 class Case33:
-    errors = [Messages.FHG005]
+    errors = [Messages.FHG008]
     code = """
     def shorten_key(value: Any) -> str:
         return divider.join(
@@ -463,27 +458,7 @@ class Case38:
     """
 
 
-@pytest.mark.parametrize('case', CLASSES_REGISTRY.values())
+@pytest.mark.parametrize('case', CLASSES_REGISTRY[__name__].values())
 def test_plugin_on_func_call(run_plugin, case):
     """Test plugin on function calls."""
-    code, expected_errors = case.code, sorted(case.errors or [])
-    found_errors = sorted(list(run_plugin(code, strip_tabs=1)))
-
-    if expected_errors:
-        assert len(found_errors) == len(expected_errors), (
-            f'Case "{case.__name__}" failed.\n'
-            f'Found: {found_errors}\n'
-            f'Expected: {expected_errors}'
-        )
-        for i, msg in enumerate(expected_errors):
-            assert found_errors[i].endswith(msg), (
-                f'Case "{case.__name__}" failed.\n'
-                f'Error: {found_errors[i]}\n'
-                f'Expected: {msg}'
-            )
-    else:
-        assert not found_errors, (
-            f'Case "{case.__name__}" failed.\n'
-            f'Found: {found_errors}\n'
-            f'Expected no errors'
-        )
+    check_registered_case(run_plugin, case)
