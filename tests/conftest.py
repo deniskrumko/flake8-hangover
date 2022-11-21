@@ -35,10 +35,16 @@ def register_case(_class):
     return _class
 
 
-def check_registered_case(run_plugin, case):
+def check_registered_case(
+    run_plugin,
+    case,
+    case_name: str = None,
+    case_code: str = None,
+):
     """Test plugin on function calls."""
-    name = case.__name__
-    code, expected_errors = case.code, sorted(case.errors or [])
+    name = case_name or case.__name__
+    code = case_code or case.code
+    expected_errors = sorted(case.errors or [])
     found_errors = sorted(list(run_plugin(code, strip_tabs=1)), key=lambda s: s.split(': ', 1)[1])
 
     def show_error(found, expected):

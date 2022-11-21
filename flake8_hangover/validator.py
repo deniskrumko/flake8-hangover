@@ -17,6 +17,7 @@ from .messages import Messages
 
 class Parenthese:
     """Store full info for single parentheses."""
+
     def __init__(
         self,
         line: int,
@@ -55,6 +56,7 @@ class Parenthese:
         return types.get(s, 0)
 
     def __repr__(self) -> str:
+        """Object representation."""
         s = f"{self.line}:{self.column} ({self.indent}) type:{self.type} open:{self.open}"
         if self.pair:
             s += f" | pair: <{self.pair.line}:{self.pair.column} ({self.pair.indent})>"
@@ -63,6 +65,7 @@ class Parenthese:
 
 class IndentValidator:
     """Validate close parentheses have the same line indent as open ones."""
+
     def __init__(self, tokens: List[TokenInfo]) -> None:
         self.tokens = tokens
         self.errors: Dict[Tuple[int, int], str] = {}
@@ -77,7 +80,7 @@ class IndentValidator:
             if not p.pair or p.line == p.pair.line:
                 continue
             if p.indent != p.pair.indent:
-                self.errors[(p.pair.line, p.pair.column)] = Messages.FHG008
+                self.errors[(p.pair.line, p.pair.column)] = Messages.FHG005
 
     def calculate_indents(self, tokens: List[TokenInfo]) -> Dict[int, int]:
         """Calculate the indent for each line in the code."""

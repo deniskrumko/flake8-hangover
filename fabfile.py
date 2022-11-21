@@ -52,11 +52,11 @@ def clean():
         'dist',
         '__pycache__',
         '.DS_Store',
+        '.coverage_html',
+        '.mypy_cache',
         f'{base_dir}.egg-info',
         f'{base_dir}/__pycache__',
-        f'{base_dir}/snapshots',
         f'{base_dir}/.DS_Store',
-        f'{base_dir}/last_check.mdiff',
     )
     local('rm -rf ' + ' '.join(files))
 

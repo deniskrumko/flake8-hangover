@@ -76,7 +76,7 @@ class Case5:
 
 @register_case
 class Case6:
-    errors = [Messages.FHG004, Messages.FHG008]
+    errors = [Messages.FHG004, Messages.FHG005]
     code = """
     def _hello_world(param: pd.DataFrame, other_param: sklearn.base.BaseEstimator,
         extra_param: Optional[Dict] = None) -> str:
@@ -86,7 +86,7 @@ class Case6:
 
 @register_case
 class Case7:
-    errors = [Messages.FHG004, Messages.FHG001, Messages.FHG008]
+    errors = [Messages.FHG004, Messages.FHG001, Messages.FHG005]
     code = """
     def _calc_pdp(df: pd.DataFrame, estimator: sklearn.base.BaseEstimator,
                 pdp_kwarg: Optional[Dict]) -> List[pdp.PDPIsolate]:
@@ -96,7 +96,7 @@ class Case7:
 
 @register_case
 class Case8:
-    errors = [Messages.FHG004, Messages.FHG001, Messages.FHG008]
+    errors = [Messages.FHG004, Messages.FHG001, Messages.FHG005]
     code = """
     def _hello_world(param: pd.DataFrame, other_param: sklearn.base.BaseEstimator,
                     extra_param: Optional[Dict] = None) -> str:
@@ -119,7 +119,7 @@ class Case9:
 
 @register_case
 class Case10:
-    errors = [Messages.FHG004, Messages.FHG008]
+    errors = [Messages.FHG004, Messages.FHG005]
     code = """
     def test_something(foo, bar,
         buzz):
@@ -151,5 +151,16 @@ class Case12:
 
 @pytest.mark.parametrize('case', CLASSES_REGISTRY[__name__].values())
 def test_plugin_on_func_definition(run_plugin, case):
-    """Test plugin on async function definitions."""
+    """Test plugin on function definitions."""
     check_registered_case(run_plugin, case)
+
+
+@pytest.mark.parametrize('case', CLASSES_REGISTRY[__name__].values())
+def test_plugin_on_async_func_definition(run_plugin, case):
+    """Test plugin on async function definitions."""
+    check_registered_case(
+        run_plugin,
+        case,
+        case_name=f'ASYNC {case.__name__}',
+        case_code=case.code.replace('def ', 'async def '),
+    )

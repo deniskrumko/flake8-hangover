@@ -5,9 +5,6 @@
 # flake8-hangover
 Flake8 plugin to prevent specific hanging indentations (and more).
 
-Test
-
-
 # Installation
 
 ```
@@ -16,12 +13,13 @@ pip install flake8-hangover
 
 # Errors
 
-| Code   | Description                                               |
-|--------|-----------------------------------------------------------|
-| FHG001 | Function argument has hanging indentation                 |
-| FHG002 | Function call positional argument has hanging indentation |
-| FHG003 | Function call keyword argument has hanging indentation    |
-| FHG004 | First function argument must be on new line               |
+| Code   | Description                                                |
+|--------|------------------------------------------------------------|
+| FHG001 | Function argument has hanging indentation                  |
+| FHG002 | Function call positional argument has hanging indentation  |
+| FHG003 | Function call keyword argument has hanging indentation     |
+| FHG004 | First function argument must be on new line                |
+| FHG005 | Close bracket have different indentation with open bracket |
 
 # Examples
 
@@ -133,7 +131,7 @@ def test_something(
     ...
 ```
 
-## FHG005 Function close bracket must be on new line
+## FHG005 Close bracket have different indentation with open bracket
 
 ```python
 # ERROR: Close bracket on line with last parameter not allowed
@@ -150,28 +148,7 @@ func(
 )
 ```
 
-## FHG006 Function close bracket got over indentation
-
-It mostly overlapping [E123](https://www.flake8rules.com/rules/E123.html), but a bit wider.
-
-```python
-# ERROR: Function close bracket over indented to the right
-func({
-    {
-        'key': 'value',
-    }})
-```
-
-```python
-# OK: Close bracket aligned with first line
-func({
-    {
-        'key': 'value',
-    }
-})
-```
-
-## FHG007 Assignment close bracket got over indentation
+Same thing with assigments:
 
 ```python
 # ERROR: Close bracket not aligned with open bracket's line

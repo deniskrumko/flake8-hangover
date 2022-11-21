@@ -7,6 +7,7 @@ license = {text = "MIT"}
 urls.repository = "https://github.com/deniskrumko/flake8-hangover"
 authors = [
     {name = "Denis Krumko", email = "dkrumko@gmail.ru"},
+    {name = "strayge", email = "strayge@gmail.com"},
 ]
 classifiers = [
         "Development Status :: 4 - Beta",

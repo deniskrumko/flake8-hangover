@@ -26,6 +26,7 @@ class Visitor(ast.NodeVisitor):
         self._tokens = tokens
 
     def add_error(self, lineno: int, offset: int, error: str) -> None:
+        """Add error (unique only) to errors list."""
         key = (lineno, offset)
         if key not in self.errors:
             self.errors[key] = error
@@ -83,15 +84,6 @@ class Visitor(ast.NodeVisitor):
         self._check_func_args_indentations(node)
         self.generic_visit(node)
 
-    def _check_ends_with_call(self, node: Any, end_offset: int) -> bool:
-        inner_end = None
-        if isinstance(node, ast.Call):
-            inner_end = node.func.end_col_offset
-        elif isinstance(node.value, ast.Call):
-            inner_end = node.value.end_col_offset
-
-        return inner_end is not None and inner_end <= end_offset
-
     def _check_func_args_indentations(self, node: Any) -> None:
         """Check indentations in function args/kwargs."""
         cur_lineno = node.lineno
@@ -124,6 +116,7 @@ class Visitor(ast.NodeVisitor):
         return int(obj.col_offset)
 
     def _get_arg_lineno(self, obj: Any) -> int:
+        """Get `lineno` for object."""
         if isinstance(obj, ast.keyword):
             return self._get_arg_lineno(obj.value)
         if isinstance(obj, ast.GeneratorExp):
@@ -167,29 +160,6 @@ class Visitor(ast.NodeVisitor):
             return str(obj.id)
         except Exception:
             return ''
-
-    def _get_node_meaning_lineno(self, node: ast.Call) -> int:
-        return node.func.end_lineno or node.func.lineno
-
-    def _get_tokens_for_line(
-        self, line: int, col_offset: Optional[int] = None,
-    ) -> List[tokenize.TokenInfo]:
-        result = []
-        for token in self._tokens:
-            if (
-                token.start[0] == line
-                and (col_offset is None or token.start[1] >= col_offset)
-            ):
-                result.append(token)
-        return result
-
-    def _get_indent(self, tokens: List[tokenize.TokenInfo]) -> int:
-        for token in tokens:
-            if token.type == tokenize.INDENT:
-                return token.end[1]
-        if tokens:
-            return tokens[0].start[1]
-        return 0
 
 
 class Plugin:
